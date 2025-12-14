@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Platform Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        #game-container {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        
+        #game {
+            border: 3px solid #fff;
+            border-radius: 10px;
+            display: block;
+            background: #13183b;
+        }
+        
+        #hud {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        #controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        #mobile-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: manipulation;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="hud">
+            <div id="score">Score: 0</div>
+            <div id="coins">🪙 0</div>
+            <div id="dist">Dist: 0 m</div>
+            <div id="lives">❤ 3</div>
+        </div>
+        
+        <canvas id="game" width="800" height="400"></canvas>
+        
+        <div id="controls">
+            <button id="btn-pause">Pause (P)</button>
+            <button id="btn-restart">Restart (R)</button>
+        </div>
+        
+        <div id="mobile-controls">
+            <div class="control-btn" id="btn-left">←</div>
+            <div class="control-btn" id="btn-right">→</div>
+            <div class="control-btn" id="btn-jump">↑</div>
+            <div class="control-btn" id="btn-dash">⚡</div>
+        </div>
+    </div>
+
+    <script>
+        // ====== GAME CONSTANTS ======
+        const canvas = document.getElementById("game");
+        const ctx = canvas.getContext("2d");
+        const scoreEl = document.getElementById("score");
+        const coinsEl = document.getElementById("coins");
+        const distEl = document.getElementById("dist");
+        const livesEl = document.getElementById("lives");
+        const btnPause = document.getElementById("btn-pause");
+        const btnRestart = document.getElementById("btn-restart");
+
+        const btnLeft = document.getElementById("btn-left");
+        const btnRight = document.getElementById("btn-right");
+        const btnJump = document.getElementById("btn-jump");
+        const btnDash = document.getElementById("btn-dash");
+
+        const GRAVITY = 0.6;
+        const FRICTION = 0.85;
+        const GAME_SPEED_START = 4;
+        const SPAWN_INTERVAL = 120; // frames
+
+        let keys = {};
+        let touch = { left: false, right: false, jump: false, dash: false };
+        let gameOver = false;
+        let paused = false;
+        let score = 0;
+        let coinsCollected = 0;
+        let dist = 0;
+        let lives = 3;
+        let frameCount = 0;
+        let gameSpeed = GAME_SPEED_START;
+        let player, traps, mobs, coins, heals, particles, hoverMobs;
+        let lastScoreUpdate = 0;
+
+        // Background colors that change every 1000m
+        const backgrounds = [
+            "#13183b", // default dark blue
+            "#2d1b69", // purple
+            "#1a5f3f", // dark green
+            "#5f1a1a", // dark red
+            "#3d2914", // brown
+            "#14395f", // ocean blue
+            "#5f145f", // magenta
+            "#145f5f"  // teal
+        ];
+
+        // ====== UTILITY FUNCTIONS ======
+        function rand(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+        function rectsCollide(r1, r2) {
+            return (
+                r1.x < r2.x + r2.w &&
+                r1.x + r1.w > r2.x &&
+                r1.y < r2.y + r2.h &&
+                r1.h + r1.y > r2.y
+            );
+        }
+
+        // ====== CLASSES ======
+        class Entity {
+            constructor(x, y, w, h, color) {
+                this.x = x; this.y = y;
+                this.w = w; this.h = h;
+                this.color = color;
+                this.vx = 0; this.vy = 0;
+                this.animFrame = 0;
+                this.dead = false;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+            }
+        }
+
+        class Player extends Entity {
+            constructor() {
+                super(50, canvas.height - 100, 40, 40, "#9be8d8");
+                this.jumpCount = 0;
+                this.invincible = 0;
+                this.dashCooldown = 0;
+                this.isMoving = false;
+                this.direction = 1; // 1 for right, -1 for left
+            }
+            update() {
+                if (this.invincible > 0) this.invincible--;
+                if (this.dashCooldown > 0) this.dashCooldown--;
+
+                // Horizontal input
+                let moving = false;
+                if (keys["ArrowLeft"] || keys["a"] || touch.left) {
+                    this.vx -= 0.5;
+                    moving = true;
+                    this.direction = -1;
+                }
+                if (keys["ArrowRight"] || keys["d"] || touch.right) {
+                    this.vx += 0.5;
+                    moving = true;
+                    this.direction = 1;
+                }
+                this.isMoving = moving;
+                this.vx *= moving ? 0.9 : FRICTION;
+
+                // Jump
+                if ((keys[" "] || keys["w"] || keys["ArrowUp"] || touch.jump) && this.jumpCount < 2) {
+                    this.vy = -10;
+                    this.jumpCount++;
+                    touch.jump = false; // prevent multi-jump in one press
+                }
+
+                // Dash
+                if ((keys["Shift"] || keys["x"] || touch.dash) && this.dashCooldown <= 0) {
+                    this.vx += (this.vx >= 0 ? 1 : -1) * 15;
+                    this.dashCooldown = 60; // 1 second cooldown
+                    touch.dash = false;
+                }
+
+                // Apply gravity
+                this.vy += GRAVITY;
+
+                // Update position
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Boundaries
+                if (this.y + this.h >= canvas.height - 20) {
+                    this.y = canvas.height - this.h - 20;
+                    this.vy = 0;
+                    this.jumpCount = 0;
+                }
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
+
+                // Animation frame
+                this.animFrame += 0.2;
+            }
+
+            draw() {
+                ctx.save();
+
+                // Blink while invincible
+                if (this.invincible > 0 && Math.floor(Date.now() / 100) % 2) {
+                    ctx.globalAlpha = 0.45;
+                }
+
+                // Blue aura when invincible
+                if (this.invincible > 0) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = "rgba(0, 150, 255, 0.6)";
+                }
+
+                // Walking animation offset
+                let walkOffset = this.isMoving ? Math.sin(this.animFrame) * 2 : 0;
+
+                // Body (red shirt) - slightly bounces when walking
+                ctx.fillStyle = "#ff4c4c";
+                ctx.strokeStyle = "#000";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(this.x, this.y + this.h * 0.32 + walkOffset * 0.5, this.w, this.h * 0.68, 6);
+                } else {
+                    const rx = 6, x = this.x, y = this.y + this.h * 0.32 + walkOffset * 0.5, w = this.w, h = this.h * 0.68;
+                    ctx.moveTo(x + rx, y);
+                    ctx.lineTo(x + w - rx, y);
+                    ctx.quadraticCurveTo(x + w, y, x + w, y + rx);
+                    ctx.lineTo(x + w, y + h - rx);
+                    ctx.quadraticCurveTo(x + w, y + h, x + w - rx, y + h);
+                    ctx.lineTo(x + rx, y + h);
+                    ctx.quadraticCurveTo(x, y + h, x, y + h - rx);
+                    ctx.lineTo(x, y + rx);
+                    ctx.quadraticCurveTo(x, y, x + rx, y);
+                }
+                ctx.fill();
+                ctx.stroke();
+
+                // Head - bobs when walking
+                ctx.fillStyle = "#f7c28d";
+                ctx.beginPath();
+                ctx.arc(this.x + this.w / 2, this.y + this.h * 0.18 + walkOffset, this.w * 0.45, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Hair
+                ctx.fillStyle = "#5b3a29";
+                ctx.beginPath();
+                ctx.arc(this.x + this.w / 2, this.y + this.h * 0.12 + walkOffset, this.w * 0.5, Math.PI, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Eyes - blink occasionally
+                let eyeHeight = Math.random() > 0.98 ? 2 : 6;
+                ctx.fillStyle = "#000";
+                ctx.fillRect(this.x + this.w * 0.3, this.y + this.h * 0.15 + walkOffset, 3, eyeHeight);
+                ctx.fillRect(this.x + this.w * 0.6, this.y + this.h * 0.15 + walkOffset, 3, eyeHeight);
+
+                // Legs - alternating walk cycle
+                let leg1Offset = this.isMoving ? Math.sin(this.animFrame) * 3 : 0;
+                let leg2Offset = this.isMoving ? Math.sin(this.animFrame + Math.PI) * 3 : 0;
+
+                ctx.fillStyle = "#2e3d90";
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(this.x + 4, this.y + this.h * 0.82 + leg1Offset, this.w / 2 - 6, this.h * 0.18, 3);
+                    ctx.roundRect(this.x + this.w / 2 + 2, this.y + this.h * 0.82 + leg2Offset, this.w / 2 - 6, this.h * 0.18, 3);
+                }
+                ctx.fill();
+                ctx.stroke();
+
+                // Boots
+                ctx.fillStyle = "#7a4b2f";
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(this.x + 4, this.y + this.h - 6 + leg1Offset, this.w / 2 - 6, 6, 2);
+                    ctx.roundRect(this.x + this.w / 2 + 2, this.y + this.h - 6 + leg2Offset, this.w / 2 - 6, 6, 2);
+                }
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        class Trap extends Entity {
+            constructor(x, y) {
+                super(x, y, 40, 40, "#ccc");
+                this.pulsePhase = Math.random() * Math.PI * 2;
+            }
+            
+            update() {
+                this.pulsePhase += 0.1;
+            }
+            
+            draw() {
+                ctx.save();
+                
+                // Pulsing red glow
+                let glowIntensity = 0.6 + 0.4 * Math.sin(this.pulsePhase);
+                ctx.shadowBlur = 15 * glowIntensity;
+                ctx.shadowColor = `rgba(255,0,0,${glowIntensity})`;
+                
+                // Animated spike with slightly varying height
+                let spikeHeight = this.h + Math.sin(this.pulsePhase * 2) * 3;
+                
+                // Base
+                ctx.fillStyle = "#666";
+                ctx.strokeStyle = "#333";
+                ctx.lineWidth = 2;
+                ctx.fillRect(this.x, this.y + spikeHeight - 10, this.w, 10);
+                ctx.strokeRect(this.x, this.y + spikeHeight - 10, this.w, 10);
+                
+                // Spike body - vector style
+                ctx.fillStyle = "#999";
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.w / 2, this.y);
+                ctx.lineTo(this.x + 5, this.y + spikeHeight - 10);
+                ctx.lineTo(this.x + this.w - 5, this.y + spikeHeight - 10);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                // Highlight edge - vector style
+                ctx.strokeStyle = "#ccc";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.w / 2, this.y);
+                ctx.lineTo(this.x + 8, this.y + spikeHeight - 15);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+
+        class HoverSkullMob extends Entity {
+            constructor(x, y) {
+                super(x, y, 48, 56, "#31354a");
+                this.baseY = y;
+                this.bouncePhase = Math.random() * Math.PI * 2;
+                this.nodPhase = Math.random() * Math.PI * 2;
+                this.nodSpeed = 0.03 + Math.random() * 0.07;
+                this.bounceSpeed = 0.05 + Math.random() * 0.05;
+            }
+            update() {
+                this.x -= gameSpeed; // Move left with game speed
+                this.bouncePhase += this.bounceSpeed;
+                this.nodPhase += this.nodSpeed * (Math.random() > 0.98 ? 1 : 0.7);
+                // Hover close to ground, bounce randomly
+                this.y = this.baseY + Math.sin(this.bouncePhase) * 6 + Math.random() * 2;
+                
+                // Mark for removal when off screen
+                if (this.x + this.w < 0) {
+                    this.dead = true;
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
+
+                // Bobbing/Nodding
+                let nod = Math.sin(this.nodPhase) * 0.09;
+
+                ctx.rotate(nod);
+
+                // Body/hood
+                ctx.beginPath();
+                ctx.ellipse(0, 8, 20, 22, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "#383960";
+                ctx.fill();
+
+                // Face
+                ctx.beginPath();
+                ctx.arc(0, 0, 17, Math.PI*0.2, Math.PI*1.8);
+                ctx.closePath();
+                ctx.fillStyle = "#191e28";
+                ctx.fill();
+
+                // Eyes
+                ctx.save();
+                ctx.translate(-8, -2);
+                ctx.rotate(nod * 1.5);
+                ctx.fillStyle = "#bed7ee";
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 6, 3, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.restore();
+
+                ctx.save();
+                ctx.translate(8, -2);
+                ctx.rotate(-nod * 1.5);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 6, 3, 0, 0, Math.PI*2);
+                ctx.fillStyle = "#bed7ee";
+                ctx.fill();
+                ctx.restore();
+
+                // Mouth
+                ctx.beginPath();
+                ctx.moveTo(-5, 8);
+                ctx.lineTo(5, 8);
+                ctx.lineTo(2, 13);
+                ctx.lineTo(-2, 13);
+                ctx.closePath();
+                ctx.fillStyle = "#73beca";
+                ctx.fill();
+
+                // Belt
+                ctx.fillStyle = "#2a2238";
+                ctx.fillRect(-11, 23, 22, 5);
+                ctx.beginPath();
+                ctx.arc(0, 25, 4, 0, Math.PI*2);
+                ctx.fillStyle = "#6c608f";
+                ctx.fill();
+
+                // Animate slight hoodie tip
+                ctx.beginPath();
+                ctx.moveTo(-20, -10);
+                ctx.quadraticCurveTo(-18, -25, -5, -23);
+                ctx.lineTo(-8, -10);
+                ctx.closePath();
+                ctx.fillStyle = "#46446a";
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        class FlyingMob extends Entity {
+            constructor(x, y) {
+                super(x, y, 60, 60, "#4a6a78");
+                this.vx = rand(-3, -1.5);
+                this.phase = Math.random() * Math.PI * 2;
+                this.wingPhase = 0;
+                this.initialY = y;
+            }
+            update() {
+                this.x += this.vx;
+                this.phase += 0.1;
+                this.wingPhase += 0.3;
+                this.animFrame += 0.15;
+                
+                // Flying pattern - sine wave with some randomness
+                this.y = this.initialY + Math.sin(this.phase) * 30 + Math.sin(this.phase * 2) * 10;
+                
+                if (this.x + this.w < 0) this.dead = true;
+            }
+            draw() {
+                ctx.save();
+                
+                // Pulsing aura
+                let auraIntensity = 0.4 + 0.2 * Math.sin(this.animFrame);
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = `rgba(255,0,0,${auraIntensity})`;
+
+                // Animated wings - flapping motion
+                let wingFlap = Math.sin(this.wingPhase) * 0.8;
+                ctx.fillStyle = "#5a2c57";
+                
+                // Left wing
+                ctx.save();
+                ctx.translate(this.x + 5, this.y + this.h / 2);
+                ctx.rotate(wingFlap * 0.5);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(-25, -this.h / 4, -15, this.h * 0.25);
+                ctx.quadraticCurveTo(-5, 0, 0, 0);
+                ctx.fill();
+                ctx.restore();
+                
+                // Right wing
+                ctx.save();
+                ctx.translate(this.x + this.w - 5, this.y + this.h / 2);
+                ctx.rotate(-wingFlap * 0.5);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(25, -this.h / 4, 15, this.h * 0.25);
+                ctx.quadraticCurveTo(5, 0, 0, 0);
+                ctx.fill();
+                ctx.restore();
+
+                ctx.shadowBlur = 0;
+
+                // Body - slightly bobs
+                let bodyBob = Math.sin(this.phase * 0.5) * 2;
+                ctx.beginPath();
+                ctx.arc(this.x + this.w / 2, this.y + this.h / 2 + bodyBob, this.w / 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = "#6e8fa0";
+                ctx.fill();
+
+                // Eyes - blinking and following slight movement
+                let eyeBlink = Math.random() > 0.97;
+                let eyeSize = eyeBlink ? 2 : 5;
+                let eyeLook = Math.sin(this.animFrame * 0.3) * 2;
+                
+                ctx.fillStyle = "#fff";
+                ctx.beginPath();
+                ctx.arc(this.x + this.w * 0.4 + eyeLook, this.y + this.h * 0.4 + bodyBob, eyeSize, 0, Math.PI * 2);
+                ctx.arc(this.x + this.w * 0.6 + eyeLook, this.y + this.h * 0.4 + bodyBob, eyeSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                if (!eyeBlink) {
+                    ctx.fillStyle = "#000";
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.w * 0.4 + eyeLook, this.y + this.h * 0.4 + bodyBob, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.w * 0.6 + eyeLook, this.y + this.h * 0.4 + bodyBob, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Animated mouth
+                let mouthOpen = 0.5 + 0.3 * Math.sin(this.animFrame);
+                ctx.fillStyle = "#fff";
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.w * 0.35, this.y + this.h * 0.6 + bodyBob);
+                ctx.lineTo(this.x + this.w * 0.65, this.y + this.h * 0.6 + bodyBob);
+                ctx.lineTo(this.x + this.w * 0.65, this.y + this.h * (0.6 + 0.08 * mouthOpen) + bodyBob);
+                ctx.lineTo(this.x + this.w * 0.35, this.y + this.h * (0.6 + 0.08 * mouthOpen) + bodyBob);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        class Coin extends Entity {
+            constructor(x, y) {
+                super(x, y, 25, 25, "#FFD700");
+                this.rotationSpeed = rand(0.05, 0.15);
+                this.rotation = 0;
+                this.floatPhase = Math.random() * Math.PI * 2;
+            }
+            
+            update() {
+                this.rotation += this.rotationSpeed;
+                this.floatPhase += 0.08;
+                this.animFrame += 0.1;
+            }
+            
+            draw() {
+                ctx.save();
+                
+                // Floating motion
+                let floatOffset = Math.sin(this.floatPhase) * 3;
+                let currentY = this.y + floatOffset;
+                
+                // Pulsing glow
+                let glowIntensity = 0.7 + 0.3 * Math.sin(this.animFrame);
+                ctx.shadowBlur = 10 * glowIntensity;
+                ctx.shadowColor = `rgba(255,215,0,${glowIntensity})`;
+
+                ctx.translate(this.x + this.w / 2, currentY + this.h / 2);
+                ctx.rotate(this.rotation);
+
+                // 3D coin effect with rotation
+                let scaleX = Math.abs(Math.cos(this.rotation * 3));
+                ctx.scale(scaleX, 1);
+
+                // Outer circle
+                ctx.beginPath();
+                ctx.arc(0, 0, this.w / 2, 0, Math.PI * 2);
+                ctx.fillStyle = "#FFD700";
+                ctx.fill();
+
+                // Inner circle - only visible when not edge-on
+                if (scaleX > 0.3) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.w / 3, 0, Math.PI * 2);
+                    ctx.fillStyle = "#ffcc33";
+                    ctx.fill();
+
+                    // Shine
+                    ctx.fillStyle = "rgba(255,255,255,0.8)";
+                    ctx.beginPath();
+                    ctx.arc(-this.w * 0.15, -this.h * 0.15, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        class Heal extends Entity {
+            constructor(x, y) {
+                super(x, y, 30, 30, "#ff0000");
+                this.pulsePhase = Math.random() * Math.PI * 2;
+            }
+            
+            update() {
+                this.pulsePhase += 0.12;
+                this.animFrame += 0.1;
+            }
+            
+            draw() {
+                ctx.save();
+                
+                // Pulsing effect
+                let pulse = 1 + Math.sin(this.pulsePhase) * 0.2;
+                let glowIntensity = 0.6 + 0.4 * Math.sin(this.animFrame);
+                
+                ctx.shadowBlur = 15 * glowIntensity;
+                ctx.shadowColor = `rgba(255,0,0,${glowIntensity})`;
+                
+                ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
+                ctx.scale(pulse, pulse);
+
+                // Animated heart
+                ctx.fillStyle = "#ff4d4d";
+                ctx.beginPath();
+                ctx.moveTo(0, this.h * 0.25);
+                ctx.bezierCurveTo(-this.w / 2, 0, -this.w / 2, -this.h / 2, 0, -this.h / 6);
+                ctx.bezierCurveTo(this.w / 2, -this.h / 2, this.w / 2, 0, 0, this.h * 0.25);
+                ctx.closePath();
+                ctx.fill();
+
+                // Shine
+                ctx.fillStyle = "rgba(255,255,255,0.8)";
+                ctx.beginPath();
+                ctx.arc(-this.w * 0.15, -this.h * 0.15, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y;
+                this.vx = rand(-2, 2);
+                this.vy = rand(-2, 2);
+                this.color = color;
+                this.life = 30;
+                this.maxLife = 30;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+            }
+            draw() {
+                ctx.save();
+                let alpha = this.life / this.maxLife;
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = alpha;
+                ctx.fillRect(this.x, this.y, 4, 4);
+                ctx.restore();
+            }
+        }
+
+        // ====== GAME SETUP ======
+        function init() {
+            player = new Player();
+            traps = [];
+            mobs = [];
+            coins = [];
+            heals = [];
+            particles = [];
+            hoverMobs = [];
+            score = 0;
+            coinsCollected = 0;
+            dist = 0;
+            lives = 3;
+            frameCount = 0;
+            gameSpeed = GAME_SPEED_START;
+            gameOver = false;
+            paused = false;
+            lastScoreUpdate = 0;
+        }
+        init();
+
+        // ====== INPUT ======
+        document.addEventListener("keydown", e => {
+            keys[e.key] = true;
+            if (e.key === "p") togglePause();
+            if (e.key === "r") init();
+        });
+        document.addEventListener("keyup", e => (keys[e.key] = false));
+
+        btnPause.onclick = togglePause;
+        btnRestart.onclick = init;
+
+        // Fixed touch controls
+        btnLeft.addEventListener('mousedown', () => (touch.left = true));
+        btnLeft.addEventListener('mouseup', () => (touch.left = false));
+        btnLeft.addEventListener('mouseleave', () => (touch.left = false));
+        btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); touch.left = true; });
+        btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); touch.left = false; });
+
+        btnRight.addEventListener('mousedown', () => (touch.right = true));
+        btnRight.addEventListener('mouseup', () => (touch.right = false));
+        btnRight.addEventListener('mouseleave', () => (touch.right = false));
+        btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); touch.right = true; });
+        btnRight.addEventListener('touchend', (e) => { e.preventDefault(); touch.right = false; });
+
+        btnJump.addEventListener('mousedown', () => (touch.jump = true));
+        btnJump.addEventListener('mouseup', () => (touch.jump = false));
+        btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); touch.jump = true; });
+        btnJump.addEventListener('touchend', (e) => { e.preventDefault(); touch.jump = false; });
+
+        btnDash.addEventListener('mousedown', () => (touch.dash = true));
+        btnDash.addEventListener('mouseup', () => (touch.dash = false));
+        btnDash.addEventListener('touchstart', (e) => { e.preventDefault(); touch.dash = true; });
+        btnDash.addEventListener('touchend', (e) => { e.preventDefault(); touch.dash = false; });
+
+        // ====== GAME LOOP ======
+        function update() {
+            if (paused || gameOver) return;
+            frameCount++;
+            dist += gameSpeed / 10;
+            gameSpeed += 0.001; // slowly increase difficulty
+
+            // Distance-based scoring: 0.2 points per meter
+            let currentMeter = Math.floor(dist);
+            if (currentMeter > lastScoreUpdate) {
+                score += (currentMeter - lastScoreUpdate) * 0.2;
+                lastScoreUpdate = currentMeter;
+            }
+
+            player.update();
+
+            // Spawn entities - HoverMobs are now the only ground mobs
+            if (frameCount % SPAWN_INTERVAL === 0) {
+                const r = Math.random();
+                const y = canvas.height - 70; // Fixed Y position
+                if (r < 0.2) {
+                    traps.push(new Trap(canvas.width, y));
+                } else if (r < 0.4) {
+                    // Spawn HoverSkullMob as ground mob
+                    hoverMobs.push(new HoverSkullMob(canvas.width, y));
+                } else if (r < 0.5) {
+                    // Flying mobs spawn in the air
+                    mobs.push(new FlyingMob(canvas.width, rand(100, canvas.height - 150)));
+                } else if (r < 0.8) {
+                    coins.push(new Coin(canvas.width, y - 20));
+                } else {
+                    heals.push(new Heal(canvas.width, y - 20));
+                }
+            }
+            
+            // Update hover mobs (ground mobs)
+            for (let mob of hoverMobs) { 
+                mob.update();
+                if (rectsCollide(player, mob) && player.invincible <= 0) {
+                    lives--;
+                    player.invincible = 60;
+                    spawnParticles(player.x, player.y, "#bdd7ee");
+                    if (lives <= 0) gameOver = true;
+                }
+            }
+            hoverMobs = hoverMobs.filter(m => m.x + m.w > 0 && !m.dead);
+
+            // Update traps
+            for (let t of traps) {
+                t.x -= gameSpeed;
+                t.update();
+                if (rectsCollide(player, t) && player.invincible <= 0) {
+                    lives--;
+                    player.invincible = 60;
+                    spawnParticles(player.x, player.y, "#ff6b6b");
+                    if (lives <= 0) gameOver = true;
+                }
+            }
+            traps = traps.filter(t => t.x + t.w > 0);
+
+            // Update flying mobs
+            for (let m of mobs) {
+                m.update();
+                if (rectsCollide(player, m) && player.invincible <= 0) {
+                    lives--;
+                    player.invincible = 60;
+                    spawnParticles(player.x, player.y, "#ffd166");
+                    if (lives <= 0) gameOver = true;
+                }
+            }
+            mobs = mobs.filter(m => !m.dead);
+
+            // Coins - reduced to 5 points each
+            for (let c of coins) {
+                c.x -= gameSpeed;
+                c.update();
+                if (rectsCollide(player, c)) {
+                    score += 5;
+                    coinsCollected++;
+                    spawnParticles(c.x, c.y, "#f2e85c");
+                    c.dead = true;
+                }
+            }
+            coins = coins.filter(c => !c.dead && c.x + c.w > 0);
+
+            // Heals
+            for (let h of heals) {
+                h.x -= gameSpeed;
+                h.update();
+                if (rectsCollide(player, h)) {
+                    lives++;
+                    spawnParticles(h.x, h.y, "#6efa8a");
+                    h.dead = true;
+                }
+            }
+            heals = heals.filter(h => !h.dead && h.x + h.w > 0);
+
+            // Particles
+            for (let p of particles) p.update();
+            particles = particles.filter(p => p.life > 0);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Dynamic background - changes every 1000m
+            let bgIndex = Math.floor(dist / 1000) % backgrounds.length;
+            let currentBg = backgrounds[bgIndex];
+            ctx.fillStyle = currentBg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ground
+            ctx.fillStyle = "#2a2a2a";
+            ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+
+            // Entities
+            player.draw();
+            for (let t of traps) t.draw();
+            for (let m of mobs) m.draw();
+            for (let h of hoverMobs) h.draw(); // Draw hover mobs
+            for (let c of coins) c.draw();
+            for (let h of heals) h.draw();
+            for (let p of particles) p.draw();
+
+            // HUD
+            scoreEl.textContent = 'Score: ' + Math.floor(score);
+            coinsEl.textContent = '🪙 ' + coinsCollected;
+            distEl.textContent = 'Dist: ' + Math.floor(dist) + ' m';
+            livesEl.textContent = '❤ ' + lives;
+
+            if (paused) {
+                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#fff";
+                ctx.font = "40px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("Paused", canvas.width / 2, canvas.height / 2);
+                ctx.textAlign = "start";
+            }
+            if (gameOver) {
+                ctx.fillStyle = "rgba(0,0,0,0.7)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#fff";
+                ctx.font = "40px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
+                ctx.font = "20px sans-serif";
+                ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 40);
+                ctx.fillText("Final Score: " + Math.floor(score), canvas.width / 2, canvas.height / 2 + 70);
+                ctx.textAlign = "start";
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+
+        function spawnParticles(x, y, color) {
+            for (let i = 0; i < 10; i++) {
+                particles.push(new Particle(x + rand(-5, 5), y + rand(-5, 5), color));
+            }
+        }
+
+        function togglePause() {
+            paused = !paused;
+        }
+    </script>
+</body>
+</html>
