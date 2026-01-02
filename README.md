@@ -1,3 +1,5 @@
+![CI](https://github.com/ikilledkanishk/2d-Runner-Game/actions/workflows/ci.yml/badge.svg)
+
 # 🏃 2D Running Game
 
 A small 2D animated running game built using basic web technologies.  
@@ -37,5 +39,5 @@ This repository exists to:
 - Serve as a simple showcase of web-based game development
 - Feel free to explore the code, learn from it, and experiment, but don’t rebrand it as your magnum opus.
 
-## CI Status
-![CI](https://github.com/ikilledkanishk/2d-Runner-Game/actions/workflows/ci.yml/badge.svg)
+
+
