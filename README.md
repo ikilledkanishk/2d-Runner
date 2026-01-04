@@ -1,5 +1,7 @@
 ![CI](https://github.com/ikilledkanishk/2d-Runner-Game/actions/workflows/ci.yml/badge.svg)
 
+![Deploy](https://img.shields.io/badge/GitHub%20Pages-Deployed-brightgreen)
+
 # 🏃 2D Running Game
 
 A small 2D animated running game built using basic web technologies.  
