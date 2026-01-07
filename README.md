@@ -1,44 +1,88 @@
-![CI](https://github.com/ikilledkanishk/2d-Runner-Game/actions/workflows/ci.yml/badge.svg)
-
-![Deploy](https://img.shields.io/badge/GitHub%20Pages-Deployed-brightgreen)
-
 # 🏃 2D Running Game
 
-A small 2D animated running game built using basic web technologies.  
-Created as a learning and experimentation project, with equal parts curiosity, logic, and vibe coding.
+![CI](https://github.com/ikilledkanishk/2d-Runner-Game/actions/workflows/ci.yml/badge.svg)
+![Deploy](https://img.shields.io/badge/GitHub%20Pages-Deployed-brightgreen)
 
-This project does not aim to revolutionize gaming. It aims to run. And it does.
+A small 2D animated running game built with basic web technologies.  
+Created as a learning and experimentation project — part curiosity, part logic, part vibe coding.
+
+This project is not trying to be a full game engine. It aims to run. And it does.
+
+---
+
+## Demo / Screenshot
+Click the link below to play the game or you can also see the screenshots below:
+
+https://ikilledkanishk.github.io/2d-Runner-Game/ 
+
+![screenshot-placeholder](docs/pictures)
+---
 
 ## 🎮 Overview
 - Simple 2D side-scrolling runner
-- Basic character animation
+- Basic character animation and obstacle interaction
 - Lightweight gameplay mechanics
-- Runs directly in the browser with no setup drama
+- Runs directly in the browser with no build step
 
-The focus was on understanding animation, movement logic, and game flow rather than building a feature-heavy game engine.
+---
 
-## 🛠 Technologies Used
-- HTML  
-- CSS  
+## ⚙️ Technologies
+- HTML
+- CSS
 - JavaScript  
+No frameworks. No libraries. Just the basics.
 
-No frameworks. No libraries. Just the basics doing their best.
+---
 
-## 🚀 How to Run
-1. Clone or download this repository  
-2. Open the project folder  
-3. Open index.html in any modern web browser  
-4. Press keys. Observe movement. Feel accomplished.
+## ▶️ Controls
+- Space / Up Arrow — Jump
+- Left / Right Arrow — Move Left or Right
+- R — Restart
+- P — Pause
+- X — Dash
 
-## 📦 Project Status
-This project is currently *experimental* and *unfinished*.  
-It may be improved, refactored, or left alone depending on future motivation levels.
-
-## 🎯 Purpose
-This repository exists to:
-- Practice basic game development concepts
-- Experiment with animations and logic
-- Serve as a simple showcase of web-based game development
-- Feel free to explore the code, learn from it, and experiment, but don’t claim it. 
+ Note: All the buttons are also available on the gameplay screen itself for ease.
 
 
+
+---
+
+## 🚀 How to run locally
+You can run this game simply by clicking this link:
+  https://ikilledkanishk.github.io/2d-Runner-Game/
+
+OR
+
+1. Clone the repo:
+   git clone https://github.com/ikilledkanishk/2d-Runner-Game.git
+2. Open the project folder and open index.html in a modern browser.
+
+
+---
+
+
+## 📦 Project status
+Experimental and unfinished. Future improvements could include:
+- Better collision detection
+- More levels or procedural obstacles
+- Sound effects and music
+
+
+---
+
+## 🤝 Contributing
+Contributions are welcome:
+- Open an issue to propose features or report bugs
+- Send a pull request for fixes or improvements
+Please keep changes small and documented.
+
+If you want, add a CONTRIBUTING.md with more detail.
+
+---
+
+
+## 👤 Contact / Credits
+Created by ikilledkanishk.  
+Feel free to open an issue or PR if you want to collaborate.
+
+---
