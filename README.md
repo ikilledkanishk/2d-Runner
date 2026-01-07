@@ -39,7 +39,6 @@ This repository exists to:
 - Practice basic game development concepts
 - Experiment with animations and logic
 - Serve as a simple showcase of web-based game development
-- Feel free to explore the code, learn from it, and experiment, but don’t rebrand it as your magnum opus.
-
+- Feel free to explore the code, learn from it, and experiment, but don’t claim it. 
 
 
