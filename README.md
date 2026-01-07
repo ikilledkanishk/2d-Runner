@@ -15,7 +15,8 @@ Click the link below to play the game or you can also see the screenshots below:
 
 https://ikilledkanishk.github.io/2d-Runner-Game/ 
 
-![screenshot-placeholder](docs/pictures)
+![picture 1](docs/pictures/1.png)
+![picture 2](docs/pictures/2.png)
 ---
 
 ## 🎮 Overview
