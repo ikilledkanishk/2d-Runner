@@ -10,10 +10,9 @@ This project is not trying to be a full game engine. It aims to run. And it does
 
 ---
 
-## Demo / Screenshot
-Click the link below to play the game or you can also see the screenshots below:
+## Screenshot
+Click the link below to see the screenshots:
 
-https://ikilledkanishk.github.io/2d-Runner-Game/ 
 
 ![Screenshots of the gameplay](docs/pictures)
 
