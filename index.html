@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Enhanced Platform Game</title>
     <style>
         body {
@@ -14,6 +14,8 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            touch-action: none; /* Prevent scrolling on mobile */
+            overflow: hidden; /* Prevent scrollbars */
         }
         
         #game-container {
@@ -22,6 +24,8 @@
             padding: 20px;
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         #game {
@@ -29,6 +33,8 @@
             border-radius: 10px;
             display: block;
             background: #13183b;
+            max-width: 100%;
+            height: auto;
         }
         
         #hud {
@@ -104,6 +110,7 @@
         <div id="controls">
             <button id="btn-pause">Pause (P)</button>
             <button id="btn-restart">Restart (R)</button>
+            <button id="btn-music">Music: OFF 🎵</button>
         </div>
         
         <div id="mobile-controls">
@@ -118,12 +125,19 @@
         // ====== GAME CONSTANTS ======
         const canvas = document.getElementById("game");
         const ctx = canvas.getContext("2d");
+         const bgMusic = new
+        Audio('retro.mp3');
+
+        bgMusic.loop = true;
+        bgMusic.volume = 1;
+        let isMusicPlaying = false;
         const scoreEl = document.getElementById("score");
         const coinsEl = document.getElementById("coins");
         const distEl = document.getElementById("dist");
         const livesEl = document.getElementById("lives");
         const btnPause = document.getElementById("btn-pause");
         const btnRestart = document.getElementById("btn-restart");
+        const btnMusic = document.getElementById("btn-music");
 
         const btnLeft = document.getElementById("btn-left");
         const btnRight = document.getElementById("btn-right");
@@ -159,6 +173,20 @@
             "#5f145f", // magenta
             "#145f5f"  // teal
         ];
+
+        // ====== AUDIO SYSTEM ======
+
+        function toggleMusic() {
+            if (isMusicPlaying) {
+                bgMusic.pause();
+                btnMusic.textContent = "Music: OFF"
+            } else {
+                bgMusic.play().catch (e => console.log("Audio play blocked:", e));
+                btnMusic.textContent = "Music ON";
+            }
+            isMusicPlaying = !isMusicPlaying;
+        }
+        btnMusic.onclick = toggleMusic;
 
         // ====== UTILITY FUNCTIONS ======
         function rand(min, max) {
@@ -719,6 +747,11 @@
             gameOver = false;
             paused = false;
             lastScoreUpdate = 0;
+
+            if(isMusicPlaying){
+                bgMusic.currentTime = 0;
+                bgMusic.play();
+            }
         }
         init();
 
@@ -861,6 +894,10 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            if(gameOver){
+                bgMusic.pause();
+            }
+
             // Dynamic background - changes every 1000m
             let bgIndex = Math.floor(dist / 1000) % backgrounds.length;
             let currentBg = backgrounds[bgIndex];
@@ -924,6 +961,10 @@
 
         function togglePause() {
             paused = !paused;
+            if (isMusicPlaying) {
+                if (paused) bgMusic.pause();
+                else bgMusic.play();
+            }
         }
     </script>
 </body>
