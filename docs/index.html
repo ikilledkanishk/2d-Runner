@@ -125,7 +125,7 @@
         // ====== GAME CONSTANTS ======
         const canvas = document.getElementById("game");
         const ctx = canvas.getContext("2d");
-         const bgMusic = new Audio('./src/audio/retro.mp3');
+         const bgMusic = new Audio('src/audio/retro.mp3');
 
         bgMusic.loop = true;
         bgMusic.volume = 1;
@@ -178,7 +178,7 @@
         function toggleMusic() {
             if (isMusicPlaying) {
                 bgMusic.pause();
-                btnMusic.textContent = "Music: OFF"
+                btnMusic.textContent = "Music: OFF";
             } else {
                 bgMusic.play().catch (e => console.log("Audio play blocked:", e));
                 btnMusic.textContent = "Music ON";
