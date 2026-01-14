@@ -11,10 +11,7 @@ This project is not trying to be a full game engine. It aims to run. And it does
 ---
 
 ## Screenshot
-Click the link below to see the screenshots:
-
-
-![Screenshots of the gameplay](docs/pictures)
+Click this link to see the screenshots: ![Screenshots of the gameplay](docs/pictures)
 
 ---
 
