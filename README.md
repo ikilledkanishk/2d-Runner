@@ -1,6 +1,7 @@
 # 🏃 2D Running Game
 
 ![CI](https://github.com/ikilledkanishk/2d-Runner-Game/actions/workflows/ci.yml/badge.svg)
+
 ![Deploy](https://img.shields.io/badge/GitHub%20Pages-Deployed-brightgreen)
 
 A small 2D animated running game built with basic web technologies.  
@@ -26,8 +27,7 @@ Click this link to see the screenshots: ![Screenshots of the gameplay](docs/pict
 ## ⚙️ Technologies
 - HTML
 - CSS
-- JavaScript  
-No frameworks. No libraries. Just the basics.
+- JavaScript
 
 ---
 
