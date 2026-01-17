@@ -1,8 +1,6 @@
 # 🏃 2D Running Game
 
-![CI](https://github.com/ikilledkanishk/2d-Runner-Game/actions/workflows/ci.yml/badge.svg)
-
-![Deploy](https://img.shields.io/badge/GitHub%20Pages-Deployed-brightgreen)
+![CI](https://github.com/ikilledkanishk/2d-Runner-Game/actions/workflows/ci.yml/badge.svg) ![Deploy](https://img.shields.io/badge/GitHub%20Pages-Deployed-brightgreen) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE)
 
 A small 2D animated running game built with basic web technologies.  
 Created as a learning and experimentation project — part curiosity, part logic, part vibe coding.
