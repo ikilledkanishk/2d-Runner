@@ -21,10 +21,11 @@
         #game-container {
             background: rgba(94, 17, 129, 0.629);
             border-radius: 15px;
-            padding: 20px;
+            padding: 10px;
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            max-width: 100%;
+            max-width: 900px;
+            width: 95vw;
             box-sizing: border-box;
         }
         
@@ -35,6 +36,7 @@
             background: #13183b;
             max-width: 100%;
             height: auto;
+            width: 100%;
         }
         
         #hud {
@@ -86,15 +88,23 @@
         
         #mobile-controls {
             display: flex;
+            margin-top: 20px;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .control-group{
+            display: flex;
             gap: 15px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
         }
         
         .control-btn {
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
@@ -107,7 +117,7 @@
             touch-action: manipulation;
             cursor: pointer;
             transition: transform 0.1s, box-shadow 0.1s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
         }
 
          .control-btn:active {
@@ -160,8 +170,11 @@
         </div>
         
         <div id="mobile-controls">
+            <div class="control-group">
             <div class="control-btn" id="btn-left">⬅️</div>
             <div class="control-btn" id="btn-right">➡️</div>
+            </div>
+            <div class="control-group">
             <div class="control-btn" id="btn-jump">⬆️</div>
             <div class="control-btn" id="btn-dash">⚡</div>
         </div>
