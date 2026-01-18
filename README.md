@@ -1,4 +1,4 @@
-# 🏃 2D Running Game
+# 🏃 2D Runner Game
 
 ![CI](https://github.com/ikilledkanishk/2d-Runner-Game/actions/workflows/ci.yml/badge.svg) ![Deploy](https://img.shields.io/badge/GitHub%20Pages-Deployed-brightgreen) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE)
 
@@ -44,12 +44,12 @@ Click this link to see the screenshots: ![Screenshots of the gameplay](docs/pict
 
 ## 🚀 How to run locally
 You can run this game simply by clicking this link:
-  https://ikilledkanishk.github.io/2d-Runner-Game/
+  https://ikilledkanishk.github.io/2d-Runner/
 
 OR
 
 1. Clone the repo:
-   git clone https://github.com/ikilledkanishk/2d-Runner-Game.git
+   git clone https://github.com/ikilledkanishk/2d-Runner.git
 2. Open the project folder and open index.html in a modern browser.
 
 
