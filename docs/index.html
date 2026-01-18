@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Enhanced Platform Game</title>
+    <title>2D Runner</title>
     <style>
         body {
             margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: Arial, sans-serif;
+            padding: 5px;
+            background: linear-gradient(100deg, #3c58d5 50%, #33634d 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -19,7 +19,7 @@
         }
         
         #game-container {
-            background: rgba(255,255,255,0.1);
+            background: rgba(94, 17, 129, 0.629);
             border-radius: 15px;
             padding: 20px;
             backdrop-filter: blur(10px);
@@ -45,12 +45,22 @@
             font-weight: bold;
             color: white;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .hud-item{
+            background: rgba(0,0,0,0.3);
+            padding: 8px 12px;
+            border-radius: 8px;
         }
         
         #controls {
             display: flex;
             gap: 10px;
             margin: 10px 0;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         
         button {
@@ -61,15 +71,17 @@
             color: white;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         
         button:hover {
             transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         }
         
         button:active {
-            transform: scale(0.95);
+            transform: translateY(0);
         }
         
         #mobile-controls {
@@ -93,7 +105,37 @@
             justify-content: center;
             user-select: none;
             touch-action: manipulation;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
+
+         .control-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        #streak-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            animation: streakPulse 0.5s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes streakPulse {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+
+
     </style>
 </head>
 <body>
@@ -101,22 +143,26 @@
         <div id="hud">
             <div id="score">Score: 0</div>
             <div id="coins">🪙 0</div>
-            <div id="dist">Dist: 0 m</div>
-            <div id="lives">❤ 3</div>
+            <div id="dist">Dist📏: 0 m</div>
+            <div id="lives">🤍 3</div>
+            <div class="hud-item" id="combo">Combo🔥: 0x</div>
         </div>
         
-        <canvas id="game" width="800" height="400"></canvas>
+        <div style="position: relative;">
+            <canvas id="game" width="800" height="400"></canvas>
+            <div id="streak-display" style="display:none;"></div>
+        </div>
         
         <div id="controls">
-            <button id="btn-pause">Pause (P)</button>
-            <button id="btn-restart">Restart (R)</button>
-            <button id="btn-music">Music: OFF 🎵</button>
+            <button id="btn-pause">⏸️ Pause (P)</button>
+            <button id="btn-restart">🔄 Restart (R)</button>
+            <button id="btn-music">🎵 Music: OFF </button>
         </div>
         
         <div id="mobile-controls">
-            <div class="control-btn" id="btn-left">←</div>
-            <div class="control-btn" id="btn-right">→</div>
-            <div class="control-btn" id="btn-jump">↑</div>
+            <div class="control-btn" id="btn-left">⬅️</div>
+            <div class="control-btn" id="btn-right">➡️</div>
+            <div class="control-btn" id="btn-jump">⬆️</div>
             <div class="control-btn" id="btn-dash">⚡</div>
         </div>
     </div>
@@ -125,19 +171,21 @@
         // ====== GAME CONSTANTS ======
         const canvas = document.getElementById("game");
         const ctx = canvas.getContext("2d");
-         const bgMusic = new Audio('audio/retro.mp3');
 
+        const bgMusic = new Audio('retro.mp3');
         bgMusic.loop = true;
         bgMusic.volume = 1;
         let isMusicPlaying = false;
+
         const scoreEl = document.getElementById("score");
         const coinsEl = document.getElementById("coins");
         const distEl = document.getElementById("dist");
         const livesEl = document.getElementById("lives");
+        const comboEl = document.getElementById("combo");
+        const streakDisplay = document.getElementById("streak-display");
         const btnPause = document.getElementById("btn-pause");
         const btnRestart = document.getElementById("btn-restart");
         const btnMusic = document.getElementById("btn-music");
-
         const btnLeft = document.getElementById("btn-left");
         const btnRight = document.getElementById("btn-right");
         const btnJump = document.getElementById("btn-jump");
@@ -149,7 +197,7 @@
         const SPAWN_INTERVAL = 120; // frames
 
         let keys = {};
-        let touch = { left: false, right: false, jump: false, dash: false };
+        let  touch = { left: false, right: false, jump: false, dash: false };
         let gameOver = false;
         let paused = false;
         let score = 0;
@@ -160,6 +208,9 @@
         let gameSpeed = GAME_SPEED_START;
         let player, traps, mobs, coins, heals, particles, hoverMobs;
         let lastScoreUpdate = 0;
+        let combo = 0;
+        let comboTimer = 0;
+        let platforms;
 
         // Background colors that change every 1000m
         const backgrounds = [
@@ -178,10 +229,10 @@
         function toggleMusic() {
             if (isMusicPlaying) {
                 bgMusic.pause();
-                btnMusic.textContent = "Music: OFF";
+                btnMusic.textContent = "🎵 Music: OFF"
             } else {
                 bgMusic.play().catch (e => console.log("Audio play blocked:", e));
-                btnMusic.textContent = "Music ON";
+                btnMusic.textContent = "🎶 Music ON";
             }
             isMusicPlaying = !isMusicPlaying;
         }
@@ -224,6 +275,8 @@
                 this.dashCooldown = 0;
                 this.isMoving = false;
                 this.direction = 1; // 1 for right, -1 for left
+                this.dashTrail = [];
+                this.isDashing = 0;
             }
             update() {
                 if (this.invincible > 0) this.invincible--;
@@ -255,8 +308,25 @@
                 if ((keys["Shift"] || keys["x"] || touch.dash) && this.dashCooldown <= 0) {
                     this.vx += (this.vx >= 0 ? 1 : -1) * 15;
                     this.dashCooldown = 60; // 1 second cooldown
+                    this.isDashing = 10;
                     touch.dash = false;
+                // Create dash trail
+                    if (this.isDashing > 0){
+                        this.dashTrail.push({
+                            x: this.x,
+                            y: this.y,
+                            alpha: 1,
+                            w: this.w,
+                            h: this.h
+                        });
+                        this.isDashing --;
+                    }
                 }
+                // Update dash trail
+                for (let trail of this.dashTrail) {
+                    trail.alpha -= 0.04;
+                }
+                this.dashTrail = this.dashTrail.filter(t => t.alpha > 0);
 
                 // Apply gravity
                 this.vy += GRAVITY;
@@ -279,8 +349,21 @@
             }
 
             draw() {
-                ctx.save();
+                // Draw dash trail
+                for (let trail of this.dashTrail) {
+                    ctx.save();
+                    ctx.globalAlpha = trail.alpha;
+                    ctx.fillStyle = "#9be8d8";
+                    ctx.beginPath ();
+                    if (ctx.roundRect) ctx.roundRect (trail.x,trail.y+trail.h * 0.32, trail.w, trail.h * 0.68, 6);
+                    ctx.fill ();
 
+                    ctx.beginPath();
+                    ctx.arc(trail.x + trail.w / 2, trail.y + trail.h * 0.18, trail.w * 0.45, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                ctx.save();
                 // Blink while invincible
                 if (this.invincible > 0 && Math.floor(Date.now() / 100) % 2) {
                     ctx.globalAlpha = 0.45;
@@ -360,6 +443,28 @@
                 ctx.fill();
                 ctx.stroke();
 
+                ctx.restore();
+            }
+        }
+
+                class Platform extends Entity {
+            constructor(x, y, w) {
+                super(x, y, w, 15, "#4a7c8f");
+                this.vx = 0;
+                this.vy = 0;
+            }
+            
+            update() {
+                this.x -= gameSpeed;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.fillStyle = "#4a7c8f";
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.w, this.h);
                 ctx.restore();
             }
         }
@@ -728,6 +833,14 @@
             }
         }
 
+        function showStreak(count) {
+            streakDisplay.textContent = `${count}x COMBO!`;
+            streakDisplay.style.display = 'block';
+            setTimeout(() => {
+                streakDisplay.style.display = 'none';
+            }, 1000);
+        }
+
         // ====== GAME SETUP ======
         function init() {
             player = new Player();
@@ -737,6 +850,7 @@
             heals = [];
             particles = [];
             hoverMobs = [];
+            platforms = [];
             score = 0;
             coinsCollected = 0;
             dist = 0;
@@ -746,6 +860,8 @@
             gameOver = false;
             paused = false;
             lastScoreUpdate = 0;
+            combo = 0;
+            comboTimer = 0;
 
             if(isMusicPlaying){
                 bgMusic.currentTime = 0;
@@ -794,6 +910,12 @@
             frameCount++;
             dist += gameSpeed / 10;
             gameSpeed += 0.001; // slowly increase difficulty
+            
+            if (comboTimer > 0) {
+                comboTimer--;
+            } else if (combo > 0) {
+                combo = 0;
+            }
 
             // Distance-based scoring: 0.2 points per meter
             let currentMeter = Math.floor(dist);
@@ -808,20 +930,41 @@
             if (frameCount % SPAWN_INTERVAL === 0) {
                 const r = Math.random();
                 const y = canvas.height - 70; // Fixed Y position
-                if (r < 0.2) {
+                if (Math.random() > 0.3){
+                    platforms.push(new Platform(canvas.width, y - rand(90, 150), rand(120, 200)));
+                }
+                if (r < 0.3) {
                     traps.push(new Trap(canvas.width, y));
-                } else if (r < 0.4) {
+                } else if (r < 0.5) {
                     // Spawn HoverSkullMob as ground mob
                     hoverMobs.push(new HoverSkullMob(canvas.width, y));
-                } else if (r < 0.5) {
+                } else if (r < 0.6) {
                     // Flying mobs spawn in the air
                     mobs.push(new FlyingMob(canvas.width, rand(100, canvas.height - 150)));
-                } else if (r < 0.8) {
+                } else if (r < 0.4) {
                     coins.push(new Coin(canvas.width, y - 20));
                 } else {
                     heals.push(new Heal(canvas.width, y - 20));
                 }
+                
             }
+
+            // Update platforms
+            for (let i = platforms.length - 1; i>= 0; i--) {
+                let p = platforms[i];
+                if (!p) continue;
+                p.update();
+                
+                // Platform collision
+                if (rectsCollide(player, p) && player.vy >= 0 && player.y + player.h - player.vy <= p.y + 5) {
+                    player.y = p.y - player.h;
+                    player.vy = 0;
+                    player.jumpCount = 0;
+                }
+
+                if (p.x + p.w < 0) platforms.splice (i,1);
+            }
+            platforms = platforms.filter(p => p.x + p.w > 0);
             
             // Update hover mobs (ground mobs)
             for (let mob of hoverMobs) { 
@@ -829,6 +972,8 @@
                 if (rectsCollide(player, mob) && player.invincible <= 0) {
                     lives--;
                     player.invincible = 60;
+                    combo = 0;
+                    comboTimer =0;
                     spawnParticles(player.x, player.y, "#bdd7ee");
                     if (lives <= 0) gameOver = true;
                 }
@@ -842,6 +987,8 @@
                 if (rectsCollide(player, t) && player.invincible <= 0) {
                     lives--;
                     player.invincible = 60;
+                    combo = 0;
+                    comboTimer =0;
                     spawnParticles(player.x, player.y, "#ff6b6b");
                     if (lives <= 0) gameOver = true;
                 }
@@ -854,6 +1001,8 @@
                 if (rectsCollide(player, m) && player.invincible <= 0) {
                     lives--;
                     player.invincible = 60;
+                    combo = 0;
+                    comboTimer =0;
                     spawnParticles(player.x, player.y, "#ffd166");
                     if (lives <= 0) gameOver = true;
                 }
@@ -865,8 +1014,14 @@
                 c.x -= gameSpeed;
                 c.update();
                 if (rectsCollide(player, c)) {
-                    score += 5;
+                    combo++;
+                    comboTimer = 120;
+                    let bonusScore = 5 * combo;
+                    score += bonusScore;
                     coinsCollected++;
+                    if (combo > 1 && combo % 5 === 0) {
+                        showStreak(combo);
+                    }
                     spawnParticles(c.x, c.y, "#f2e85c");
                     c.dead = true;
                 }
@@ -900,15 +1055,39 @@
             // Dynamic background - changes every 1000m
             let bgIndex = Math.floor(dist / 1000) % backgrounds.length;
             let currentBg = backgrounds[bgIndex];
-            ctx.fillStyle = currentBg;
+            let nextBg = backgrounds[(bgIndex + 1) % backgrounds.length];
+            let transition = (dist % 1000) / 1000;
+            
+            if (transition < 0.1) {
+                let t = transition / 0.1;
+                ctx.fillStyle = interpolateColor(currentBg, nextBg, t);
+            } else {
+                ctx.fillStyle = nextBg;
+            }
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Stars
+            ctx.fillStyle = "rgba(255,255,255,0.6)";
+            for (let i = 0; i < 50; i++) {
+                let x = (i * 137.5 + frameCount * 0.5) % canvas.width;
+                let y = (i * 47.3) % canvas.height;
+                let twinkle = Math.sin(frameCount * 0.05 + i) * 0.5 + 0.5;
+                ctx.globalAlpha = twinkle;
+                ctx.fillRect(x, y, 2, 2);
+            }
+            ctx.globalAlpha = 1;
+
 
             // Ground
             ctx.fillStyle = "#2a2a2a";
             ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+            ctx.strokeStyle = "#4a4a4a";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, canvas.height - 20, canvas.width, 20);
 
             // Entities
             player.draw();
+            for (let p of platforms) p.draw();
             for (let t of traps) t.draw();
             for (let m of mobs) m.draw();
             for (let h of hoverMobs) h.draw(); // Draw hover mobs
@@ -919,28 +1098,37 @@
             // HUD
             scoreEl.textContent = 'Score: ' + Math.floor(score);
             coinsEl.textContent = '🪙 ' + coinsCollected;
-            distEl.textContent = 'Dist: ' + Math.floor(dist) + ' m';
-            livesEl.textContent = '❤ ' + lives;
+            distEl.textContent = 'Dist📏: ' + Math.floor(dist) + ' m';
+            livesEl.textContent = '🩶 ' + lives;
+            comboEl.textContent = '🔥 ' + combo + 'x';
+            comboEl.style.color = combo > 0 ? '#FFD700' : 'white';
+
+
 
             if (paused) {
                 ctx.fillStyle = "rgba(0,0,0,0.5)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = "#fff";
-                ctx.font = "40px sans-serif";
+                ctx.font = "bold 48px sans-serif";
                 ctx.textAlign = "center";
-                ctx.fillText("Paused", canvas.width / 2, canvas.height / 2);
+                ctx.fillText("⏸️ Paused", canvas.width / 2, canvas.height / 2);
+                ctx.font = "24px sans-serif";
+                ctx.fillText("Press P to resume", canvas.width / 2, canvas.height / 2 + 50);
                 ctx.textAlign = "start";
             }
             if (gameOver) {
-                ctx.fillStyle = "rgba(0,0,0,0.7)";
+                ctx.fillStyle = "rgba(0,0,0,0.85)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = "#fff";
-                ctx.font = "40px sans-serif";
+                ctx.font = "bold 56px sans-serif";
                 ctx.textAlign = "center";
-                ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
-                ctx.font = "20px sans-serif";
-                ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 40);
-                ctx.fillText("Final Score: " + Math.floor(score), canvas.width / 2, canvas.height / 2 + 70);
+                ctx.fillText("Game Over👾", canvas.width / 2, canvas.height / 2 - 80);
+                ctx.font = "28px sans-serif";
+                ctx.fillText("Final Score: " + Math.floor(score), canvas.width / 2, canvas.height / 2 - 10);
+                ctx.fillText("Distance: " + Math.floor(dist) + "m", canvas.width / 2, canvas.height / 2 + 30);
+                ctx.font = "italic 20px sans-serif";
+                ctx.fillStyle = "aaa";
+                ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 80);
                 ctx.textAlign = "start";
             }
         }
@@ -965,6 +1153,24 @@
                 else bgMusic.play();
             }
         }
+
+        function interpolateColor(color1, color2, t) {
+            const c1 = {
+                r: parseInt(color1.slice(1, 3), 16),
+                g: parseInt(color1.slice(3, 5), 16),
+                b: parseInt(color1.slice(5, 7), 16)
+            };
+            const c2 = {
+                r: parseInt(color2.slice(1, 3), 16),
+                g: parseInt(color2.slice(3, 5), 16),
+                b: parseInt(color2.slice(5, 7), 16)
+            };
+            const r = Math.round(c1.r + (c2.r - c1.r) * t);
+            const g = Math.round(c1.g + (c2.g - c1.g) * t);
+            const b = Math.round(c1.b + (c2.b - c1.b) * t);
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+        
     </script>
 </body>
 </html>
