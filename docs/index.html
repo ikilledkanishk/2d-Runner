@@ -959,21 +959,21 @@
             player.update();
 
             // Spawn entities - HoverMobs are now the only ground mobs
-            if (frameCount % SPAWN_INTERVAL === 0) {
+           if (frameCount % SPAWN_INTERVAL === 0) {
                 const r = Math.random();
                 const y = canvas.height - 70; // Fixed Y position
-                if (Math.random() > 0.3){
-                    platforms.push(new Platform(canvas.width, y - rand(90, 150), rand(120, 200)));
+                if (Math.random() < 0.3){
+                    platforms.push(new Platform(canvas.width, y - rand(70, 120), rand(120, 200)));
                 }
-                if (r < 0.3) {
-                    traps.push(new Trap(canvas.width, y));
-                } else if (r < 0.5) {
+                if (r < 0.40) {
+                    traps.push(new Trap(canvas.width, canvas.height - 60));
+                } else if (r < 0.45) {
                     // Spawn HoverSkullMob as ground mob
-                    hoverMobs.push(new HoverSkullMob(canvas.width, y));
-                } else if (r < 0.6) {
+                    hoverMobs.push(new HoverSkullMob(canvas.width, canvas.height - 85));
+                } else if (r < 0.55) {
                     // Flying mobs spawn in the air
                     mobs.push(new FlyingMob(canvas.width, rand(100, canvas.height - 150)));
-                } else if (r < 0.4) {
+                } else if (r < 0.65) {
                     coins.push(new Coin(canvas.width, y - 20));
                 } else {
                     heals.push(new Heal(canvas.width, y - 20));
