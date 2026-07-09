@@ -3,9 +3,9 @@
 ![CI](https://github.com/ikilledkanishk/2d-Runner-Game/actions/workflows/ci.yml/badge.svg) ![Deploy](https://img.shields.io/badge/GitHub%20Pages-Deployed-brightgreen) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE)
 
 A small 2D animated running game built with basic web technologies.  
-Created as a learning and experimentation project — part curiosity, part logic, part vibe coding.
+Created as a learning and experimentation project part curiosity, part logic, part vibe coding.
 
-This project is not trying to be a full game engine. It aims to run. And it does.
+This project is not trying to be a full game engine. It aims to run and ot surprisingly does.
 
 ---
 
@@ -81,3 +81,4 @@ Created by ikilledkanishk.
 Feel free to open an issue or PR if you want to collaborate.
 
 ---
+I'm not actively working on this project now but if you want to changr or add somthing it's welcome and suggestions are also welcomed! Thanks for checking out this repo.
