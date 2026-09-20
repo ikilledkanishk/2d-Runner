@@ -83,4 +83,4 @@ Feel free to open an issue or PR if you want to collaborate.
 ---
 
 ## 📝 Extra
-I'm not actively working on this project now but if you want to change or add something it's more than welcome and suggestions are also welcomed! Thanks for checking out this repo.
+I'm not actively working on this project now but if you want to change or add something it's more than welcome and suggestions are also appreciated! Thanks for checking out this repo.
